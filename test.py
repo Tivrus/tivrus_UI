@@ -1,53 +1,48 @@
-import re
-import requests
-import json
+import customtkinter as ctk
 
+class GradientButton(ctk.CTkCanvas):
+    def __init__(self, parent, text, color1, color2, command=None, *args, **kwargs):
+        super().__init__(parent, *args, **kwargs)
+        self.text = text
+        self.color1 = color1
+        self.color2 = color2
+        self.command = command
 
+        # Рисуем градиент и текст
+        self.bind("<Configure>", self.draw_gradient)
+        self.bind("<Button-1>", self.on_click)
 
+    def draw_gradient(self, event=None):
+        self.delete("gradient")
+        width = self.winfo_width()
+        height = self.winfo_height()
+        
+        for i in range(height):
+            ratio = i / height
+            r = int(self.color1[0] * (1 - ratio) + self.color2[0] * ratio)
+            g = int(self.color1[1] * (1 - ratio) + self.color2[1] * ratio)
+            b = int(self.color1[2] * (1 - ratio) + self.color2[2] * ratio)
+            color = f"#{r:02x}{g:02x}{b:02x}"
+            self.create_line(0, i, width, i, fill=color, tags=("gradient",))
 
-def get_figma_file_from_url(figma_url, api_token):
-    # Извлекаем file ID из ссылки с помощью регулярного выражения для разных случаев
-    match = re.search(r'https://www.figma.com/(file|design)/([0-9A-Za-z]+)', figma_url)
-    if match:
-        figma_url = match.group(0)
-    elif not match:
-        print("Не удалось найти file ID в ссылке.")
-        return None
-    
-    file_id = match.group(2)  # Извлекаем file ID из второго совпадения
-    print(f"Найденный file ID: {file_id}")
-    
-    # Выполняем запрос к Figma API
-    response = requests.get(
-                f"https://api.figma.com/v1/files/{file_id}",
-                headers={"X-FIGMA-TOKEN": api_token})
-    return response.json()
+        # Отображаем текст в центре кнопки
+        self.create_text(width // 2, height // 2, text=self.text, fill="white", font=("Arial", 12), tags=("text",))
 
-def save_to_json(data, filename="figma_file_data.json"):
-    # Сохраняем данные JSON в файл
-    try:
-        with open(filename, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        print(f"Данные сохранены в {filename}")
-    except Exception as e:
-        print(f"Ошибка при сохранении данных: {e}")
+    def on_click(self, event=None):
+        if self.command:
+            self.command()
 
+# Пример использования GradientButton
+def button_clicked():
+    print("Button clicked!")
 
+app = ctk.CTk()
+app.geometry("400x400")
 
+color1 = (0, 128, 255)  # Начальный цвет
+color2 = (0, 255, 128)  # Конечный цвет
 
+gradient_button = GradientButton(app, text="Gradient Button", color1=color1, color2=color2, width=200, height=50, command=button_clicked)
+gradient_button.pack(pady=20)
 
-
-
-# Пример использования
-figma_url = input("Введите ссылку:\n ")
-api_token = "figd_Dv7w381lon2V1Msc3POEkP5uUodOKsKlAlk3-NBA"
-
-# Получаем данные
-file_data = get_figma_file_from_url(figma_url, api_token)
-
-# Проверяем результат и сохраняем
-if file_data:
-    print("Данные JSON получены.")
-    save_to_json(file_data)  # Сохраняем JSON данные в файл
-else:
-    print("Ошибка при получении данных.")
+app.mainloop()
